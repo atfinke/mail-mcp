@@ -20,7 +20,7 @@ Supported tools:
 - `mail_reply_to_message`
 - `mail_forward_message`
 
-The primary read workflow is `mail_list_inbox_messages`, which returns full messages for all inboxes.
+The primary read workflow is `mail_list_inbox_messages`, which returns messages for all inboxes and supports `headersOnly: true` when you only need headers and metadata.
 
 The compose workflow is intentionally narrow: the server can open visible unsent compose, reply, and forward drafts, but it does not expose any send tool.
 
@@ -118,7 +118,7 @@ npm run verify
 ## Notes
 
 - The filesystem-backed `~/Library/Mail` approach is intentionally not used here because it requires broader privacy access and depends on undocumented Mail storage details.
-- Message bodies are returned for inbox and mailbox listing tools.
+- Message bodies are returned for inbox and mailbox listing tools unless `headersOnly: true` is set.
 - Compose, reply, and forward tools always open visible drafts. Hidden draft mode is intentionally avoided because Mail does not clean up invisible compose objects reliably through automation.
 - Raw headers are optional for list tools and default to `false`.
 - Attachment metadata is included, but not attachment bytes.

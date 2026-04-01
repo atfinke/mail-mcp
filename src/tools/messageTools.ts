@@ -2,17 +2,29 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { MailClient } from "../mail/client.js";
+import type { MailMessage } from "../mail/types.js";
 import { MailMessageResultSchema, MailMessagesResultSchema } from "../mail/types.js";
 import { optionalDateParam, positiveIntParam, registerReadTool } from "./common.js";
 
 const mailboxPathParam = z.array(z.string()).min(1, "Provide at least one mailbox path segment.");
+
+export function applyHeadersOnlyMode(items: MailMessage[], headersOnly = false): MailMessage[] {
+  if (!headersOnly) {
+    return items;
+  }
+
+  return items.map((item) => ({
+    ...item,
+    content: "",
+  }));
+}
 
 export function registerMessageTools(server: McpServer, client: MailClient): void {
   registerReadTool(
     server,
     "mail_list_mailbox_messages",
     "List Mailbox Messages",
-    "Return full messages for one specific Mail mailbox.",
+    "Return messages for one specific Mail mailbox. Set headersOnly to true to omit message body content.",
     {
       accountId: z.string(),
       mailboxPath: mailboxPathParam,
@@ -20,9 +32,10 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
       since: optionalDateParam,
       limit: positiveIntParam.max(500).optional(),
       includeHeaders: z.boolean().optional(),
+      headersOnly: z.boolean().optional(),
     },
     MailMessagesResultSchema,
-    async ({ accountId, mailboxPath, unreadOnly, since, limit, includeHeaders }) => {
+    async ({ accountId, mailboxPath, unreadOnly, since, limit, includeHeaders, headersOnly }) => {
       const items = await client.listMailboxMessages({
         accountId,
         mailboxPath,
@@ -34,7 +47,7 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
 
       return {
         count: items.length,
-        items,
+        items: applyHeadersOnlyMode(items, headersOnly ?? false),
       };
     },
   );
@@ -43,16 +56,17 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
     server,
     "mail_list_inbox_messages",
     "List Inbox Messages",
-    "Return full messages for every inbox mailbox, fetched in parallel with a small concurrency cap.",
+    "Return messages for every inbox mailbox, fetched in parallel with a small concurrency cap. Set headersOnly to true to omit message body content.",
     {
       accountIds: z.array(z.string()).optional(),
       unreadOnly: z.boolean().optional(),
       since: optionalDateParam,
       limitPerInbox: positiveIntParam.max(500).optional(),
       includeHeaders: z.boolean().optional(),
+      headersOnly: z.boolean().optional(),
     },
     MailMessagesResultSchema,
-    async ({ accountIds, unreadOnly, since, limitPerInbox, includeHeaders }) => {
+    async ({ accountIds, unreadOnly, since, limitPerInbox, includeHeaders, headersOnly }) => {
       const items = await client.listInboxMessages({
         accountIds,
         unreadOnly: unreadOnly ?? false,
@@ -63,7 +77,7 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
 
       return {
         count: items.length,
-        items,
+        items: applyHeadersOnlyMode(items, headersOnly ?? false),
       };
     },
   );
