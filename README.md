@@ -20,7 +20,7 @@ Supported tools:
 - `mail_reply_to_message`
 - `mail_forward_message`
 
-The primary read workflow is `mail_list_inbox_messages`, which returns full messages for all inboxes and fetches inboxes in parallel with a small concurrency cap.
+The primary read workflow is `mail_list_inbox_messages`, which returns full messages for all inboxes.
 
 The compose workflow is intentionally narrow: the server can open visible unsent compose, reply, and forward drafts, but it does not expose any send tool.
 
@@ -30,6 +30,7 @@ The compose workflow is intentionally narrow: the server can open visible unsent
 - macOS
 - Mail.app configured with at least one account
 - Automation permission to control Mail
+- A signed `MailMCPHelperApp` build
 
 ## Setup
 
@@ -45,13 +46,21 @@ The compose workflow is intentionally narrow: the server can open visible unsent
    cp .env.example .env
    ```
 
-3. Run local quality checks:
+3. Build the helper app:
+
+   ```bash
+   npm run build:helper-app
+   ```
+
+   The build script compiles the app unsigned, then signs the finished bundle with the first local `Apple Development` identity. Override that selection with `MAIL_MCP_CODESIGN_IDENTITY` if needed.
+
+4. Run local quality checks:
 
    ```bash
    npm run verify
    ```
 
-4. Run a real Mail smoke test:
+5. Run a real Mail smoke test:
 
    ```bash
    npm run test:live
@@ -59,8 +68,9 @@ The compose workflow is intentionally narrow: the server can open visible unsent
 
 Optional environment variables:
 
-- `MAIL_MCP_INBOX_CONCURRENCY`
 - `MAIL_MCP_REQUEST_TIMEOUT_MS`
+- `MAIL_MCP_HELPER_TIMEOUT_MS`
+- `MAIL_MCP_HELPER_APP_PATH`
 
 ## Run
 
@@ -79,17 +89,25 @@ npm start
 
 ## Permissions
 
-The server talks to Mail through Apple Events via `osascript -l JavaScript`.
+The server launches a signed `MailMCPHelperApp` and runs Mail automation inside that app process. This keeps the macOS Automation/TCC boundary attached to the helper app instead of Terminal or the client process.
 
 Run `mail_check_access` once after installation. On first use, macOS may prompt for permission to control Mail.
 
-If the prompt does not appear automatically in your client, run this once in Terminal:
+If the prompt does not appear automatically in your client, launch the helper app directly once:
 
 ```bash
-osascript -e 'tell application "Mail" to count every account'
+open MailMCPHelperApp/build/Build/Products/Release/MailMCPHelperApp.app
 ```
 
-The server now starts even before access is granted. Use `mail_check_access` to confirm permission state and get an actionable error message if macOS Automation consent is still pending.
+The server starts even before access is granted. Use `mail_check_access` to confirm permission state and get an actionable error message if macOS Automation consent is still pending.
+
+To re-run the consent flow on a test machine, reset Mail Apple Events permission for the helper app and then run `mail_check_access` again:
+
+```bash
+tccutil reset AppleEvents com.andrewfinke.mailmcphelper
+```
+
+After the reset, confirm that the macOS prompt names `MailMCPHelperApp`, then confirm System Settings shows `MailMCPHelperApp -> Mail`.
 
 ## Verify
 
@@ -104,6 +122,7 @@ npm run verify
 - Compose, reply, and forward tools always open visible drafts. Hidden draft mode is intentionally avoided because Mail does not clean up invisible compose objects reliably through automation.
 - Raw headers are optional for list tools and default to `false`.
 - Attachment metadata is included, but not attachment bytes.
+- The helper app executes JavaScript for Automation in-process via `OSAKit`.
 
 ## MCP Setup
 
@@ -117,7 +136,10 @@ Example client configuration for the built server:
     "mail": {
       "command": "node",
       "args": ["/absolute/path/to/mail-mcp/dist/index.js"],
-      "cwd": "/absolute/path/to/mail-mcp"
+      "cwd": "/absolute/path/to/mail-mcp",
+      "env": {
+        "MAIL_MCP_HELPER_APP_PATH": "/absolute/path/to/mail-mcp/MailMCPHelperApp/build/Build/Products/Release/MailMCPHelperApp.app"
+      }
     }
   }
 }

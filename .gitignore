@@ -2,6 +2,10 @@
 **/.DS_Store
 node_modules
 dist
+MailMCPHelperApp/build
+MailMCPHelperApp/build-ci
+**/xcuserdata
+*.xcuserstate
 .env
 .env.*
 !.env.example

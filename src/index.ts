@@ -10,12 +10,21 @@ import { createServer } from "./server.js";
 async function main(): Promise<void> {
   const config = loadConfig();
   const client = new MailClient(config);
-  const access = await client.checkAccess();
+  try {
+    const access = await client.checkAccess();
 
-  if (access.accessible) {
-    console.error(`Authenticated to Mail with ${access.count} account(s)`);
-  } else {
-    console.error(`Mail access is not ready yet: ${access.error ?? "unknown Mail automation error"}`);
+    if (access.accessible) {
+      console.error(
+        `Authenticated to Mail with ${access.count} account(s) using ${client.transportName} transport`,
+      );
+    } else {
+      console.error(
+        `Mail access is not ready yet via ${client.transportName} transport: ${access.error ?? "unknown Mail automation error"}`,
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Mail startup probe failed via ${client.transportName} transport: ${message}`);
   }
 
   const server = createServer(client);

@@ -1,13 +1,11 @@
-export const MAIL_JXA_SCRIPT = String.raw`
 ObjC.import("stdlib");
 
-function readInput() {
-  const raw = $.getenv("MAIL_MCP_INPUT_JSON");
-  if (!raw) {
+function parseInput(rawInputJson) {
+  if (!rawInputJson) {
     return {};
   }
 
-  return JSON.parse(ObjC.unwrap(raw));
+  return JSON.parse(String(rawInputJson));
 }
 
 function toNullableString(value) {
@@ -339,6 +337,52 @@ function listMessagesForMailbox(mail, input) {
   return { items: output };
 }
 
+function listInboxMessages(mail, input) {
+  const requestedIds = Array.isArray(input.accountIds)
+    ? new Set(input.accountIds.map(String))
+    : null;
+  const sinceDate = parseSince(input);
+  const output = [];
+
+  for (const account of mail.accounts()) {
+    const accountId = String(account.id());
+    if (requestedIds && !requestedIds.has(accountId)) {
+      continue;
+    }
+
+    const mailboxes = [];
+    walkMailboxes(account, safeList(() => account.mailboxes()), [], mailboxes);
+
+    for (const mailboxInfo of mailboxes) {
+      if (!mailboxInfo.isInbox) {
+        continue;
+      }
+
+      const mailbox = resolveMailbox(account, mailboxInfo.pathSegments);
+      const limit =
+        input.limitPerInbox === null || input.limitPerInbox === undefined
+          ? null
+          : Number(input.limitPerInbox);
+      let count = 0;
+
+      for (const message of safeList(() => mailbox.messages())) {
+        if (!shouldIncludeMessage(message, input, sinceDate)) {
+          continue;
+        }
+
+        output.push(messageToJson(account, mailbox, mailboxInfo.pathSegments, message, input));
+        count += 1;
+
+        if (limit !== null && count >= limit) {
+          break;
+        }
+      }
+    }
+  }
+
+  return { items: output };
+}
+
 function getMessage(mail, input) {
   const account = resolveAccount(mail, input.accountId);
   const mailbox = resolveMailbox(account, input.mailboxPathSegments);
@@ -405,17 +449,16 @@ function forwardMessage(mail, input) {
   };
 }
 
-function main() {
-  const input = readInput();
+function main(input) {
   const mail = Application("Mail");
 
   switch (input.action) {
-    case "probe": {
+    case "probe":
       return {
         accessible: true,
         count: mail.accounts().length,
+        error: null,
       };
-    }
     case "listAccounts": {
       const items = mail.accounts().map((account) => ({
         id: String(account.id()),
@@ -445,6 +488,8 @@ function main() {
     }
     case "listMessagesForMailbox":
       return listMessagesForMailbox(mail, input);
+    case "listInboxMessages":
+      return listInboxMessages(mail, input);
     case "getMessage":
       return getMessage(mail, input);
     case "composeMessage":
@@ -458,5 +503,6 @@ function main() {
   }
 }
 
-JSON.stringify(main());
-`;
+function runAction(rawInputJson) {
+  return JSON.stringify(main(parseInput(rawInputJson)));
+}
