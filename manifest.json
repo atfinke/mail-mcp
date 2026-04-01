@@ -1,0 +1,38 @@
+{
+  "manifest_version": "0.3",
+  "name": "mail-mcp",
+  "display_name": "Mail MCP",
+  "version": "0.1.0",
+  "description": "macOS Mail MCP server for reads plus visible unsent compose, reply, and forward drafts.",
+  "long_description": "Mail MCP is a local darwin-only Model Context Protocol server that talks to Apple Mail through Mail automation. It supports account discovery, mailbox listing, inbox-wide full message fetches, generic mailbox message reads, direct message lookup, and visible unsent compose, reply, and forward drafts. The tool surface intentionally excludes send support.",
+  "author": {
+    "name": "Andrew Finke"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mail",
+    "macos",
+    "apple-mail",
+    "mcp",
+    "claude-desktop"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/dist/index.js"
+      ]
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin"
+    ],
+    "runtimes": {
+      "node": ">=20"
+    }
+  },
+  "tools_generated": true
+}
