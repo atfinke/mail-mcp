@@ -4,6 +4,7 @@ import type {
   MailDraft,
   MailMailbox,
   MailMessage,
+  MailMove,
 } from "./types.js";
 
 export interface ListMailboxesOptions {
@@ -64,6 +65,13 @@ export interface ForwardMessageOptions {
   bccRecipients?: MailRecipientInput[];
 }
 
+export interface MoveMessageOptions {
+  accountId: string;
+  mailboxPath: string[];
+  destinationMailboxPath: string[];
+  messageId: number;
+}
+
 export interface MailBackend {
   readonly transportName: "helper";
   checkAccess(): Promise<MailAccess>;
@@ -80,4 +88,5 @@ export interface MailBackend {
   composeMessage(options?: ComposeMessageOptions): Promise<MailDraft>;
   replyToMessage(options: ReplyToMessageOptions): Promise<MailDraft>;
   forwardMessage(options: ForwardMessageOptions): Promise<MailDraft>;
+  moveMessage(options: MoveMessageOptions): Promise<MailMove>;
 }

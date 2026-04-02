@@ -70,6 +70,16 @@ function buildPath(pathSegments) {
   return pathSegments.join(" / ");
 }
 
+function normalizeMailboxName(name) {
+  return String(name).trim().toLowerCase().replace(/\s+/gu, " ");
+}
+
+function isBlockedMoveDestinationMailboxPath(pathSegments) {
+  const blockedNames = new Set(["trash", "deleted", "deleted items", "deleted messages"]);
+
+  return toList(pathSegments).some((segment) => blockedNames.has(normalizeMailboxName(segment)));
+}
+
 function recipientToJson(recipient) {
   return {
     name: toNullableString(safeCall(() => recipient.name(), null)),
@@ -397,6 +407,41 @@ function getMessage(mail, input) {
   return { message: null };
 }
 
+function moveMessage(mail, input) {
+  if (isBlockedMoveDestinationMailboxPath(input.destinationMailboxPathSegments)) {
+    throw new Error("Moving messages to Trash or deleted mailboxes is not allowed.");
+  }
+
+  const account = resolveAccount(mail, input.accountId);
+  const sourceMailbox = resolveMailbox(account, input.mailboxPathSegments);
+  const destinationMailbox = resolveMailbox(account, input.destinationMailboxPathSegments);
+  const source = resolveMessage(account, sourceMailbox, input.messageId);
+
+  if (!source) {
+    throw new Error("No Mail message matched the requested move target.");
+  }
+
+  try {
+    mail.move(source, {
+      to: destinationMailbox,
+    });
+  } catch (error) {
+    source.mailbox = destinationMailbox;
+  }
+
+  return {
+    move: {
+      moved: true,
+      accountId: String(account.id()),
+      messageId: Number(input.messageId),
+      sourceMailboxPath: buildPath(input.mailboxPathSegments),
+      sourceMailboxPathSegments: [...input.mailboxPathSegments],
+      destinationMailboxPath: buildPath(input.destinationMailboxPathSegments),
+      destinationMailboxPathSegments: [...input.destinationMailboxPathSegments],
+    },
+  };
+}
+
 function composeMessage(mail, input) {
   const draft = mail.OutgoingMessage({ visible: true });
   mail.outgoingMessages.push(draft);
@@ -498,6 +543,8 @@ function main(input) {
       return replyToMessage(mail, input);
     case "forwardMessage":
       return forwardMessage(mail, input);
+    case "moveMessage":
+      return moveMessage(mail, input);
     default:
       throw new Error("Unsupported Mail MCP action.");
   }

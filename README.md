@@ -1,6 +1,6 @@
 # Mail MCP
 
-Local MCP server for macOS Mail reads plus visible unsent compose, reply, and forward drafts.
+Local MCP server for macOS Mail reads plus visible unsent compose, reply, and forward drafts, and constrained single-message moves.
 
 Built entirely by OpenAI GPT-5.4 via Codex.
 
@@ -19,10 +19,12 @@ Supported tools:
 - `mail_compose_message`
 - `mail_reply_to_message`
 - `mail_forward_message`
+- `mail_move_message`
 
 The primary read workflow is `mail_list_inbox_messages`, which returns messages for all inboxes and supports `headersOnly: true` when you only need headers and metadata.
 
 The compose workflow is intentionally narrow: the server can open visible unsent compose, reply, and forward drafts, but it does not expose any send tool.
+The move workflow is intentionally constrained: it supports moving one message within the same account, but it does not allow moves to Trash or deleted-message mailboxes.
 
 ## Requirements
 

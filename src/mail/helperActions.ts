@@ -1,11 +1,17 @@
 import { z } from "zod";
 
+import { isBlockedMoveDestinationMailboxPath } from "./mailboxSafety.js";
+
 const recipientInputSchema = z.object({
   address: z.string().trim().min(1),
   name: z.string().trim().min(1).optional(),
 });
 
 const mailboxPathSchema = z.array(z.string()).min(1);
+const moveDestinationMailboxPathSchema = mailboxPathSchema.refine(
+  (pathSegments) => !isBlockedMoveDestinationMailboxPath(pathSegments),
+  "Moving messages to Trash or deleted mailboxes is not allowed.",
+);
 
 const helperRequestVariants = [
   z.object({
@@ -73,6 +79,13 @@ const helperRequestVariants = [
     toRecipients: z.array(recipientInputSchema).optional(),
     ccRecipients: z.array(recipientInputSchema).optional(),
     bccRecipients: z.array(recipientInputSchema).optional(),
+  }),
+  z.object({
+    action: z.literal("moveMessage"),
+    accountId: z.string(),
+    mailboxPathSegments: mailboxPathSchema,
+    destinationMailboxPathSegments: moveDestinationMailboxPathSchema,
+    messageId: z.number().int().positive(),
   }),
 ] as const;
 

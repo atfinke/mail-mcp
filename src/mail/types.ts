@@ -93,8 +93,22 @@ export const MailDraftSchema = z.object({
   content: z.string(),
 });
 
+export const MailMoveSchema = z.object({
+  moved: z.literal(true),
+  accountId: z.string(),
+  messageId: z.number().int().nonnegative(),
+  sourceMailboxPath: z.string(),
+  sourceMailboxPathSegments: z.array(z.string()),
+  destinationMailboxPath: z.string(),
+  destinationMailboxPathSegments: z.array(z.string()),
+});
+
 export const MailDraftResultSchema = z.object({
   draft: MailDraftSchema,
+});
+
+export const MailMoveResultSchema = z.object({
+  move: MailMoveSchema,
 });
 
 export type MailAccess = z.infer<typeof MailAccessSchema>;
@@ -102,3 +116,4 @@ export type MailAccount = z.infer<typeof MailAccountSchema>;
 export type MailMailbox = z.infer<typeof MailMailboxSchema>;
 export type MailMessage = z.infer<typeof MailMessageSchema>;
 export type MailDraft = z.infer<typeof MailDraftSchema>;
+export type MailMove = z.infer<typeof MailMoveSchema>;

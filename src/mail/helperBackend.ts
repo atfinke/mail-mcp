@@ -14,9 +14,11 @@ import type {
   ListMailboxMessagesOptions,
   ListMailboxesOptions,
   MailBackend,
+  MoveMessageOptions,
   ReplyToMessageOptions,
 } from "./backend.js";
 import { MailHelperRequestSchema } from "./helperActions.js";
+import { assertAllowedMoveDestinationMailboxPath } from "./mailboxSafety.js";
 import { sortMessagesNewestFirst } from "./normalize.js";
 import {
   MailAccessSchema,
@@ -24,11 +26,13 @@ import {
   MailDraftSchema,
   MailMailboxSchema,
   MailMessageSchema,
+  MailMoveSchema,
   type MailAccess,
   type MailAccount,
   type MailDraft,
   type MailMailbox,
   type MailMessage,
+  type MailMove,
 } from "./types.js";
 
 const listAccountsActionSchema = z.object({
@@ -49,6 +53,10 @@ const getMessageActionSchema = z.object({
 
 const draftActionSchema = z.object({
   draft: MailDraftSchema,
+});
+
+const moveActionSchema = z.object({
+  move: MailMoveSchema,
 });
 
 export class HelperMailBackend implements MailBackend {
@@ -222,6 +230,23 @@ export class HelperMailBackend implements MailBackend {
     );
 
     return result.draft;
+  }
+
+  async moveMessage(options: MoveMessageOptions): Promise<MailMove> {
+    assertAllowedMoveDestinationMailboxPath(options.destinationMailboxPath);
+
+    const result = await this.invoke(
+      {
+        action: "moveMessage",
+        accountId: options.accountId,
+        mailboxPathSegments: options.mailboxPath,
+        destinationMailboxPathSegments: options.destinationMailboxPath,
+        messageId: options.messageId,
+      },
+      moveActionSchema,
+    );
+
+    return result.move;
   }
 
   private async invoke<TSchema extends z.ZodTypeAny>(

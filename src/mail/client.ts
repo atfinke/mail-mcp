@@ -6,6 +6,7 @@ import type {
   ListMailboxMessagesOptions,
   ListMailboxesOptions,
   MailBackend,
+  MoveMessageOptions,
   ReplyToMessageOptions,
 } from "./backend.js";
 import { HelperMailBackend } from "./helperBackend.js";
@@ -15,6 +16,7 @@ import type {
   MailDraft,
   MailMailbox,
   MailMessage,
+  MailMove,
 } from "./types.js";
 
 function createBackend(config: MailConfig): MailBackend {
@@ -71,5 +73,9 @@ export class MailClient {
 
   forwardMessage(options: ForwardMessageOptions): Promise<MailDraft> {
     return this.backend.forwardMessage(options);
+  }
+
+  moveMessage(options: MoveMessageOptions): Promise<MailMove> {
+    return this.backend.moveMessage(options);
   }
 }

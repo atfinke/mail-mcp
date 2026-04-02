@@ -17,6 +17,7 @@ enum HelperAction: String, Codable {
     case composeMessage
     case replyToMessage
     case forwardMessage
+    case moveMessage
 }
 
 struct HelperRequest: Codable {
@@ -24,6 +25,7 @@ struct HelperRequest: Codable {
     let accountId: String?
     let accountIds: [String]?
     let mailboxPathSegments: [String]?
+    let destinationMailboxPathSegments: [String]?
     let unreadOnly: Bool?
     let since: String?
     let limit: Int?
@@ -43,6 +45,7 @@ struct HelperRequest: Codable {
         accountId: String? = nil,
         accountIds: [String]? = nil,
         mailboxPathSegments: [String]? = nil,
+        destinationMailboxPathSegments: [String]? = nil,
         unreadOnly: Bool? = nil,
         since: String? = nil,
         limit: Int? = nil,
@@ -61,6 +64,7 @@ struct HelperRequest: Codable {
         self.accountId = accountId
         self.accountIds = accountIds
         self.mailboxPathSegments = mailboxPathSegments
+        self.destinationMailboxPathSegments = destinationMailboxPathSegments
         self.unreadOnly = unreadOnly
         self.since = since
         self.limit = limit
@@ -75,6 +79,38 @@ struct HelperRequest: Codable {
         self.ccRecipients = ccRecipients
         self.bccRecipients = bccRecipients
     }
+
+    func validate() throws {
+        switch action {
+        case .moveMessage:
+            guard let destinationMailboxPathSegments else {
+                throw HelperError.message("Missing destination mailbox path for moveMessage.")
+            }
+
+            if isBlockedMoveDestinationMailboxPath(destinationMailboxPathSegments) {
+                throw HelperError.message("Moving messages to Trash or deleted mailboxes is not allowed.")
+            }
+        default:
+            break
+        }
+    }
+}
+
+private func normalizeMailboxName(_ name: String) -> String {
+    name.trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+        .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+}
+
+private let blockedMoveDestinationMailboxNames = Set([
+    "trash",
+    "deleted",
+    "deleted items",
+    "deleted messages",
+])
+
+private func isBlockedMoveDestinationMailboxPath(_ pathSegments: [String]) -> Bool {
+    pathSegments.contains { blockedMoveDestinationMailboxNames.contains(normalizeMailboxName($0)) }
 }
 
 struct MailAccessPayload: Codable {
@@ -177,10 +213,26 @@ struct MailDraftResultPayload: Codable {
     let draft: MailDraftPayload
 }
 
+struct MailMovePayload: Codable {
+    let moved: Bool
+    let accountId: String
+    let messageId: Int
+    let sourceMailboxPath: String
+    let sourceMailboxPathSegments: [String]
+    let destinationMailboxPath: String
+    let destinationMailboxPathSegments: [String]
+}
+
+struct MailMoveResultPayload: Codable {
+    let move: MailMovePayload
+}
+
 enum MailAutomationRunner {
     static let logger = Logger(subsystem: "com.andrewfinke.mailmcphelper", category: "automation")
 
     static func run(request: HelperRequest) throws -> Data {
+        try request.validate()
+
         let source = try loadScriptSource()
         guard let language = OSALanguage(forName: "JavaScript") else {
             throw HelperError.message("JavaScript for Automation is not available on this Mac.")

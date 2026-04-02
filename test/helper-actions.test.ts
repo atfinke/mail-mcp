@@ -28,3 +28,30 @@ test("MailHelperRequestSchema rejects empty mailbox paths", () => {
     />=1 items/u,
   );
 });
+
+test("MailHelperRequestSchema accepts constrained move requests", () => {
+  const request = MailHelperRequestSchema.parse({
+    action: "moveMessage",
+    accountId: "account-1",
+    mailboxPathSegments: ["Inbox"],
+    destinationMailboxPathSegments: ["Archive", "2026"],
+    messageId: 1,
+  });
+
+  assert.equal(request.action, "moveMessage");
+  assert.deepEqual(request.destinationMailboxPathSegments, ["Archive", "2026"]);
+});
+
+test("MailHelperRequestSchema rejects trash move destinations", () => {
+  assert.throws(
+    () =>
+      MailHelperRequestSchema.parse({
+        action: "moveMessage",
+        accountId: "account-1",
+        mailboxPathSegments: ["Inbox"],
+        destinationMailboxPathSegments: ["Trash"],
+        messageId: 1,
+      }),
+    /Trash or deleted mailboxes/u,
+  );
+});

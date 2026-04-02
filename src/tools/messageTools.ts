@@ -2,11 +2,26 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { MailClient } from "../mail/client.js";
+import { isBlockedMoveDestinationMailboxPath } from "../mail/mailboxSafety.js";
 import type { MailMessage } from "../mail/types.js";
-import { MailMessageResultSchema, MailMessagesResultSchema } from "../mail/types.js";
-import { optionalDateParam, positiveIntParam, registerReadTool } from "./common.js";
+import { MailMessageResultSchema, MailMessagesResultSchema, MailMoveResultSchema } from "../mail/types.js";
+import {
+  WRITE_TOOL_ANNOTATIONS,
+  optionalDateParam,
+  positiveIntParam,
+  registerReadTool,
+  registerWriteTool,
+} from "./common.js";
 
 const mailboxPathParam = z.array(z.string()).min(1, "Provide at least one mailbox path segment.");
+const moveDestinationMailboxPathParam = mailboxPathParam.refine(
+  (pathSegments) => !isBlockedMoveDestinationMailboxPath(pathSegments),
+  "Moving messages to Trash or deleted mailboxes is not allowed.",
+);
+const MOVE_TOOL_ANNOTATIONS = {
+  ...WRITE_TOOL_ANNOTATIONS,
+  destructiveHint: true,
+};
 
 export function applyHeadersOnlyMode(items: MailMessage[], headersOnly = false): MailMessage[] {
   if (!headersOnly) {
@@ -106,5 +121,32 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
         message,
       };
     },
+  );
+
+  registerWriteTool(
+    server,
+    "mail_move_message",
+    "Move Message",
+    "Move one Mail message to another mailbox in the same account. The destination mailbox must be an explicit mailbox path and cannot be Trash or a deleted-messages mailbox.",
+    {
+      accountId: z.string(),
+      mailboxPath: mailboxPathParam,
+      messageId: positiveIntParam,
+      destinationMailboxPath: moveDestinationMailboxPathParam,
+    },
+    MailMoveResultSchema,
+    async ({ accountId, mailboxPath, messageId, destinationMailboxPath }) => {
+      const move = await client.moveMessage({
+        accountId,
+        mailboxPath,
+        destinationMailboxPath,
+        messageId,
+      });
+
+      return {
+        move,
+      };
+    },
+    MOVE_TOOL_ANNOTATIONS,
   );
 }

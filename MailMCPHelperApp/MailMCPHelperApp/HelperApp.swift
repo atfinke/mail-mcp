@@ -150,11 +150,16 @@ struct MailMCPHelperAppMain {
 
     static func loadRequest(from requestPath: String) throws -> HelperRequest {
         let data = try Data(contentsOf: URL(fileURLWithPath: requestPath))
+
+        let request: HelperRequest
         do {
-            return try JSONDecoder().decode(HelperRequest.self, from: data)
+            request = try JSONDecoder().decode(HelperRequest.self, from: data)
         } catch {
             throw HelperError.message("Unable to decode helper request JSON: \(error.localizedDescription)")
         }
+
+        try request.validate()
+        return request
     }
 
     static func writeResponse(_ data: Data, responsePath: String?) throws {
