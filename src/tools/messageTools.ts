@@ -13,8 +13,10 @@ import {
   registerWriteTool,
 } from "./common.js";
 
-const mailboxPathParam = z.array(z.string()).min(1, "Provide at least one mailbox path segment.");
-const moveDestinationMailboxPathParam = mailboxPathParam.refine(
+const mailboxPathSegmentsParam = z
+  .array(z.string())
+  .min(1, "Provide at least one mailbox path segment.");
+const destinationMailboxPathSegmentsParam = mailboxPathSegmentsParam.refine(
   (pathSegments) => !isBlockedMoveDestinationMailboxPath(pathSegments),
   "Moving messages to Trash or deleted mailboxes is not allowed.",
 );
@@ -39,10 +41,10 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
     server,
     "mail_list_mailbox_messages",
     "List Mailbox Messages",
-    "Return messages for one specific Mail mailbox. Set headersOnly to true to omit message body content.",
+    "Return messages for one specific Mail mailbox. Pass mailboxPathSegments as an array of mailbox names such as ['Inbox'] or ['Archive', '2026']. Set headersOnly to true to omit message body content.",
     {
       accountId: z.string(),
-      mailboxPath: mailboxPathParam,
+      mailboxPathSegments: mailboxPathSegmentsParam,
       unreadOnly: z.boolean().optional(),
       since: optionalDateParam,
       limit: positiveIntParam.max(500).optional(),
@@ -50,10 +52,10 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
       headersOnly: z.boolean().optional(),
     },
     MailMessagesResultSchema,
-    async ({ accountId, mailboxPath, unreadOnly, since, limit, includeHeaders, headersOnly }) => {
+    async ({ accountId, mailboxPathSegments, unreadOnly, since, limit, includeHeaders, headersOnly }) => {
       const items = await client.listMailboxMessages({
         accountId,
-        mailboxPath,
+        mailboxPathSegments,
         unreadOnly: unreadOnly ?? false,
         since,
         limit,
@@ -101,18 +103,18 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
     server,
     "mail_get_message",
     "Get Message",
-    "Return one full message by account identifier, mailbox path, and Mail message identifier.",
+    "Return one full message by account identifier, mailbox path segments, and Mail message identifier. Use the message object's id value as messageId.",
     {
       accountId: z.string(),
-      mailboxPath: mailboxPathParam,
+      mailboxPathSegments: mailboxPathSegmentsParam,
       messageId: positiveIntParam,
       includeHeaders: z.boolean().optional(),
     },
     MailMessageResultSchema,
-    async ({ accountId, mailboxPath, messageId, includeHeaders }) => {
+    async ({ accountId, mailboxPathSegments, messageId, includeHeaders }) => {
       const message = await client.getMessage(
         accountId,
-        mailboxPath,
+        mailboxPathSegments,
         messageId,
         includeHeaders ?? true,
       );
@@ -127,19 +129,19 @@ export function registerMessageTools(server: McpServer, client: MailClient): voi
     server,
     "mail_move_message",
     "Move Message",
-    "Move one Mail message to another mailbox in the same account. The destination mailbox must be an explicit mailbox path and cannot be Trash or a deleted-messages mailbox.",
+    "Move one Mail message to another mailbox in the same account. Both mailboxPathSegments and destinationMailboxPathSegments are arrays of mailbox names. The destination cannot be Trash or a deleted-messages mailbox.",
     {
       accountId: z.string(),
-      mailboxPath: mailboxPathParam,
+      mailboxPathSegments: mailboxPathSegmentsParam,
       messageId: positiveIntParam,
-      destinationMailboxPath: moveDestinationMailboxPathParam,
+      destinationMailboxPathSegments: destinationMailboxPathSegmentsParam,
     },
     MailMoveResultSchema,
-    async ({ accountId, mailboxPath, messageId, destinationMailboxPath }) => {
+    async ({ accountId, mailboxPathSegments, messageId, destinationMailboxPathSegments }) => {
       const move = await client.moveMessage({
         accountId,
-        mailboxPath,
-        destinationMailboxPath,
+        mailboxPathSegments,
+        destinationMailboxPathSegments,
         messageId,
       });
 

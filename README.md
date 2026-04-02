@@ -26,6 +26,59 @@ The primary read workflow is `mail_list_inbox_messages`, which returns messages 
 The compose workflow is intentionally narrow: the server can open visible unsent compose, reply, and forward drafts, but it does not expose any send tool.
 The move workflow is intentionally constrained: it supports moving one message within the same account, but it does not allow moves to Trash or deleted-message mailboxes.
 
+## Path Conventions
+
+- Tool inputs use explicit segment arrays:
+  - `mailboxPathSegments: ["Inbox"]`
+  - `mailboxPathSegments: ["Archive", "2026"]`
+  - `destinationMailboxPathSegments: ["Receipts"]`
+- Mailbox results include both `path` and `pathSegments`. Use `path` for display and `pathSegments` when calling tools.
+- Message results include both `mailboxPath` and `mailboxPathSegments`. Use `mailboxPath` for display and `mailboxPathSegments` when calling tools.
+- Message results use `id`. Tools that operate on a specific message require that same value under the input name `messageId`.
+
+Example round trip:
+
+1. Call `mail_list_mailboxes` and pick a mailbox result such as:
+
+   ```json
+   {
+     "accountId": "account-1",
+     "name": "Receipts",
+     "path": "Archive / 2026 / Receipts",
+     "pathSegments": ["Archive", "2026", "Receipts"]
+   }
+   ```
+
+2. Call `mail_list_mailbox_messages` with:
+
+   ```json
+   {
+     "accountId": "account-1",
+     "mailboxPathSegments": ["Archive", "2026", "Receipts"]
+   }
+   ```
+
+3. Take a returned message object such as:
+
+   ```json
+   {
+     "id": 4812,
+     "accountId": "account-1",
+     "mailboxPath": "Archive / 2026 / Receipts",
+     "mailboxPathSegments": ["Archive", "2026", "Receipts"]
+   }
+   ```
+
+4. Call `mail_get_message` with:
+
+   ```json
+   {
+     "accountId": "account-1",
+     "mailboxPathSegments": ["Archive", "2026", "Receipts"],
+     "messageId": 4812
+   }
+   ```
+
 ## Requirements
 
 - Node.js 20+

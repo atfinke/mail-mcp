@@ -124,7 +124,7 @@ export class HelperMailBackend implements MailBackend {
       {
         action: "listMessagesForMailbox",
         accountId: options.accountId,
-        mailboxPathSegments: options.mailboxPath,
+        mailboxPathSegments: options.mailboxPathSegments,
         unreadOnly: options.unreadOnly ?? false,
         since: options.since,
         limit: options.limit,
@@ -154,7 +154,7 @@ export class HelperMailBackend implements MailBackend {
 
   async getMessage(
     accountId: string,
-    mailboxPath: string[],
+    mailboxPathSegments: string[],
     messageId: number,
     includeHeaders = true,
   ): Promise<MailMessage> {
@@ -162,7 +162,7 @@ export class HelperMailBackend implements MailBackend {
       {
         action: "getMessage",
         accountId,
-        mailboxPathSegments: mailboxPath,
+        mailboxPathSegments,
         messageId,
         includeHeaders,
       },
@@ -199,7 +199,7 @@ export class HelperMailBackend implements MailBackend {
       {
         action: "replyToMessage",
         accountId: options.accountId,
-        mailboxPathSegments: options.mailboxPath,
+        mailboxPathSegments: options.mailboxPathSegments,
         messageId: options.messageId,
         replyAll: options.replyAll ?? false,
         sender: options.sender,
@@ -218,7 +218,7 @@ export class HelperMailBackend implements MailBackend {
       {
         action: "forwardMessage",
         accountId: options.accountId,
-        mailboxPathSegments: options.mailboxPath,
+        mailboxPathSegments: options.mailboxPathSegments,
         messageId: options.messageId,
         sender: options.sender,
         subject: options.subject,
@@ -233,14 +233,14 @@ export class HelperMailBackend implements MailBackend {
   }
 
   async moveMessage(options: MoveMessageOptions): Promise<MailMove> {
-    assertAllowedMoveDestinationMailboxPath(options.destinationMailboxPath);
+    assertAllowedMoveDestinationMailboxPath(options.destinationMailboxPathSegments);
 
     const result = await this.invoke(
       {
         action: "moveMessage",
         accountId: options.accountId,
-        mailboxPathSegments: options.mailboxPath,
-        destinationMailboxPathSegments: options.destinationMailboxPath,
+        mailboxPathSegments: options.mailboxPathSegments,
+        destinationMailboxPathSegments: options.destinationMailboxPathSegments,
         messageId: options.messageId,
       },
       moveActionSchema,

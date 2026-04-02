@@ -18,7 +18,7 @@ export interface MailRecipientInput {
 
 export interface ListMailboxMessagesOptions {
   accountId: string;
-  mailboxPath: string[];
+  mailboxPathSegments: string[];
   unreadOnly?: boolean;
   since?: string;
   limit?: number;
@@ -45,7 +45,7 @@ export interface ComposeMessageOptions {
 
 export interface ReplyToMessageOptions {
   accountId: string;
-  mailboxPath: string[];
+  mailboxPathSegments: string[];
   messageId: number;
   replyAll?: boolean;
   sender?: string;
@@ -56,7 +56,7 @@ export interface ReplyToMessageOptions {
 
 export interface ForwardMessageOptions {
   accountId: string;
-  mailboxPath: string[];
+  mailboxPathSegments: string[];
   messageId: number;
   sender?: string;
   subject?: string;
@@ -67,8 +67,8 @@ export interface ForwardMessageOptions {
 
 export interface MoveMessageOptions {
   accountId: string;
-  mailboxPath: string[];
-  destinationMailboxPath: string[];
+  mailboxPathSegments: string[];
+  destinationMailboxPathSegments: string[];
   messageId: number;
 }
 
@@ -81,7 +81,7 @@ export interface MailBackend {
   listInboxMessages(options?: ListInboxMessagesOptions): Promise<MailMessage[]>;
   getMessage(
     accountId: string,
-    mailboxPath: string[],
+    mailboxPathSegments: string[],
     messageId: number,
     includeHeaders?: boolean,
   ): Promise<MailMessage>;

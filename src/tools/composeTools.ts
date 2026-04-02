@@ -10,7 +10,9 @@ const recipientInputSchema = z.object({
   name: z.string().trim().min(1).optional(),
 });
 
-const mailboxPathParam = z.array(z.string()).min(1, "Provide at least one mailbox path segment.");
+const mailboxPathSegmentsParam = z
+  .array(z.string())
+  .min(1, "Provide at least one mailbox path segment.");
 
 export function registerComposeTools(server: McpServer, client: MailClient): void {
   registerWriteTool(
@@ -49,10 +51,10 @@ export function registerComposeTools(server: McpServer, client: MailClient): voi
     server,
     "mail_reply_to_message",
     "Reply To Message",
-    "Open a visible unsent Mail reply draft for one message. This tool never sends mail.",
+    "Open a visible unsent Mail reply draft for one message. Pass mailboxPathSegments as an array of mailbox names and use the message object's id value as messageId. This tool never sends mail.",
     {
       accountId: z.string(),
-      mailboxPath: mailboxPathParam,
+      mailboxPathSegments: mailboxPathSegmentsParam,
       messageId: positiveIntParam,
       replyAll: z.boolean().optional(),
       sender: z.string().optional(),
@@ -61,10 +63,19 @@ export function registerComposeTools(server: McpServer, client: MailClient): voi
       bccRecipients: z.array(recipientInputSchema).optional(),
     },
     MailDraftResultSchema,
-    async ({ accountId, mailboxPath, messageId, replyAll, sender, subject, ccRecipients, bccRecipients }) => {
+    async ({
+      accountId,
+      mailboxPathSegments,
+      messageId,
+      replyAll,
+      sender,
+      subject,
+      ccRecipients,
+      bccRecipients,
+    }) => {
       const draft = await client.replyToMessage({
         accountId,
-        mailboxPath,
+        mailboxPathSegments,
         messageId,
         replyAll: replyAll ?? false,
         sender,
@@ -83,10 +94,10 @@ export function registerComposeTools(server: McpServer, client: MailClient): voi
     server,
     "mail_forward_message",
     "Forward Message",
-    "Open a visible unsent Mail forward draft for one message with optional sender and recipients prefilled. This tool never sends mail.",
+    "Open a visible unsent Mail forward draft for one message with optional sender and recipients prefilled. Pass mailboxPathSegments as an array of mailbox names and use the message object's id value as messageId. This tool never sends mail.",
     {
       accountId: z.string(),
-      mailboxPath: mailboxPathParam,
+      mailboxPathSegments: mailboxPathSegmentsParam,
       messageId: positiveIntParam,
       sender: z.string().optional(),
       subject: z.string().optional(),
@@ -95,10 +106,19 @@ export function registerComposeTools(server: McpServer, client: MailClient): voi
       bccRecipients: z.array(recipientInputSchema).optional(),
     },
     MailDraftResultSchema,
-    async ({ accountId, mailboxPath, messageId, sender, subject, toRecipients, ccRecipients, bccRecipients }) => {
+    async ({
+      accountId,
+      mailboxPathSegments,
+      messageId,
+      sender,
+      subject,
+      toRecipients,
+      ccRecipients,
+      bccRecipients,
+    }) => {
       const draft = await client.forwardMessage({
         accountId,
-        mailboxPath,
+        mailboxPathSegments,
         messageId,
         sender,
         subject,

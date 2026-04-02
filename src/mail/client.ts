@@ -56,11 +56,11 @@ export class MailClient {
 
   getMessage(
     accountId: string,
-    mailboxPath: string[],
+    mailboxPathSegments: string[],
     messageId: number,
     includeHeaders = true,
   ): Promise<MailMessage> {
-    return this.backend.getMessage(accountId, mailboxPath, messageId, includeHeaders);
+    return this.backend.getMessage(accountId, mailboxPathSegments, messageId, includeHeaders);
   }
 
   composeMessage(options: ComposeMessageOptions = {}): Promise<MailDraft> {
