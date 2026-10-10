@@ -6,6 +6,7 @@ PROJECT="MailMCPHelperApp/MailMCPHelperApp.xcodeproj"
 SCHEME="MailMCPHelperApp"
 DERIVED_DATA="MailMCPHelperApp/build"
 APP_PATH="$DERIVED_DATA/Build/Products/Release/MailMCPHelperApp.app"
+ENTITLEMENTS="MailMCPHelperApp/MailMCPHelperApp.entitlements"
 
 detect_identity() {
   security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ { print $2; exit }'
@@ -30,6 +31,7 @@ codesign \
   --deep \
   --options runtime \
   --timestamp=none \
+  --entitlements "$ENTITLEMENTS" \
   --sign "$CODESIGN_IDENTITY" \
   "$APP_PATH"
 
